@@ -1,0 +1,69 @@
+# w6_e3_kd_all with the teacher's report branch switched off, so its soft targets carry
+# image evidence only. Separates the report's contribution from plain self-distillation.
+
+name: w6_e5_kd_ablate
+seed: 0
+seeds: [0, 1]  # extra seeds for --noise-floor; not in config_hash
+out_dir: data/runs
+
+data:
+  slots: ["Axial_fs1", "Coronal_fs1", "Sagittal_fs1"]
+  n_slices: 16
+  stack: 3  # each slice plus its two neighbours, as 3 input channels
+  size: 384
+  physical_crop_mm: 150.0  # fixed field of view, so mm/px is the same on every scanner
+  cache_dir: data/processed/cache
+  manifest: data/interim/manifest.parquet
+  labels: data/interim/labels/derived.parquet
+  anchors_override: true  # the 58 hand-labelled studies override their derived labels
+  series_dropout: 0.1  # drops slots at random, so training sees missing series
+  num_workers: 8
+
+model:
+  backbone: convnext_small
+  pretrained: true
+  drop_path_rate: 0.2
+  aux_dim: 0
+  head: query
+  head_num_heads: 4
+
+loss:
+  gamma_neg: 4.0  # asymmetric loss; missing label cells are masked out
+  gamma_pos: 0.0
+  clip: 0.05
+
+optim:
+  lr: 5.0e-5
+  backbone_lr_mult: 1.0
+  weight_decay: 0.01
+  schedule: onecycle
+  warmup_pct: 0.1
+  epochs: 10
+  batch_size: 8
+  grad_accum: 2
+  max_grad_norm: 1.0
+  amp: true
+  amp_dtype: bf16
+
+folds:
+  n_folds: 5
+  file: data/folds/folds_v2.csv  # 685 studies held out as a test split
+  column: fold
+
+augment:
+  rotate_deg: 10.0
+
+pool:
+  head_residual: true  # adds the pooled study vector to the query head's input
+
+distill:
+  role: student
+  # Fold-matched: fold k distils from the fold-k teacher.
+  teacher_ckpt: data/runs/w6_e1_teacher/fold{fold}_seed{seed}.pt
+  # Read only by the frozen teacher, never at inference.
+  report_features: data/interim/labels/report_features_residue.parquet
+  temperature: 2.0  # the distillation loss is scaled by T^2
+  lambda_supervised: 1.0
+  lambda_distill: 1.0
+  distill_unlabelled: true  # distil on every label cell, labelled or not
+  teacher_report_ablate: true  # teacher's report branch off: image-only targets

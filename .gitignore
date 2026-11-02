@@ -1,0 +1,113 @@
+# --- Credentials -------------------------------------------------------------
+# Never commit these. kaggle.json is an API token.
+kaggle.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Data --------------------------------------------------------------------
+# Competition data is large and redistributable only via Kaggle.
+# Fold assignments are tracked because reproducibility depends on them.
+# Fold files must be CSV: the extension patterns below apply inside data/ too.
+data/*
+!data/folds/
+!data/README.md
+
+*.dcm
+*.nii
+*.nii.gz
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.parquet
+*.feather
+*.lmdb
+*.zip
+*.tar
+*.tar.gz
+
+# --- Model weights and artifacts ---------------------------------------------
+# Checkpoints staged for upload as a Kaggle dataset.
+data/models/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.bin
+checkpoints/
+weights/
+pretrained/
+
+# --- Experiment outputs ------------------------------------------------------
+outputs/
+runs/
+logs/
+lightning_logs/
+wandb/
+mlruns/
+.hydra/
+submission.csv
+
+# --- Cluster / Slurm ---------------------------------------------------------
+slurm-*.out
+slurm-*.err
+*.sbatch.log
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Environments
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# --- Jupyter -----------------------------------------------------------------
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# --- Editors and OS ----------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Documentation ------------------------------------------------------------
+# Only the public docs are tracked. Working notes, plans and run logs under docs/
+# stay local.
+docs/*
+!docs/dataset.md
+!docs/model.md
+!docs/results.md
+!docs/figures/
+
+# Generated knowledge graph (rebuildable).
+graphify-out/
+
+# Local editor-agent state.
+.claude/

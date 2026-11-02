@@ -1,0 +1,60 @@
+# Placeholder composition: b2_v2_convnext_lr100 plus rotation, brightness/contrast, CutMix
+# and per-label pooling, chosen before those arms had reported. b4_aug_query_h4 is the
+# composition built from the measured results.
+# Not yet run.
+
+name: b3_compose
+seed: 0
+seeds: [0, 1]  # extra seeds for --noise-floor; not in config_hash
+out_dir: data/runs
+
+data:
+  slots: ["Axial_fs1", "Coronal_fs1", "Sagittal_fs1"]
+  n_slices: 16
+  stack: 3  # each slice plus its two neighbours, as 3 input channels
+  size: 384
+  physical_crop_mm: 150.0  # fixed field of view, so mm/px is the same on every scanner
+  cache_dir: data/processed/cache
+  manifest: data/interim/manifest.parquet
+  labels: data/interim/labels/derived.parquet
+  anchors_override: true  # the 58 hand-labelled studies override their derived labels
+  series_dropout: 0.1  # drops slots at random, so training sees missing series
+  num_workers: 8
+
+model:
+  backbone: convnext_small
+  pretrained: true
+  drop_path_rate: 0.2
+  aux_dim: 0
+
+loss:
+  gamma_neg: 4.0  # asymmetric loss; missing label cells are masked out
+  gamma_pos: 0.0
+  clip: 0.05
+
+optim:
+  lr: 5.0e-5
+  backbone_lr_mult: 1.0
+  weight_decay: 0.01
+  schedule: onecycle
+  warmup_pct: 0.1
+  epochs: 10
+  batch_size: 8
+  grad_accum: 2
+  max_grad_norm: 1.0
+  amp: true
+  amp_dtype: bf16
+
+folds:
+  n_folds: 5
+  file: data/folds/folds_v2.csv  # 685 studies held out as a test split
+  column: fold
+
+augment:
+  rotate_deg: 10.0
+  brightness: 0.1
+  contrast: 0.1
+  cutmix_prob: 0.5
+
+pool:
+  per_label_slots: true  # per-label slot attention, added to the shared pool

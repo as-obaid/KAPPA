@@ -1,0 +1,19 @@
+{
+  "id": "muhammadobaidullaha/submission-kappa-1",
+  "title": "submission-kappa-1",
+  "code_file": "kaggle_submission.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": [
+    "rsna-knee-abnormality-detection"
+  ],
+  "model_sources": [
+    "muhammadobaidullaha/kappa-1/pyTorch/default/1"
+  ],
+  "kernel_sources": []
+}

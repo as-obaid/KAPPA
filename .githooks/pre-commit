@@ -1,0 +1,55 @@
+#!/bin/bash
+# Block commits that contain credentials or unpublished report text.
+#
+# .gitignore already keeps .env out, but an ignore rule only protects files it
+# names. A key pasted into a config, a notebook cell, a sbatch script or a
+# doc is not covered, and a secret in a commit is permanent even if the file is
+# deleted later -- git history keeps it. This checks content, not filenames.
+#
+# Enabled by: git config core.hooksPath .githooks
+# Bypass (deliberately awkward): git commit --no-verify
+
+set -uo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+# Renames count here: moving a file into the folder is the same as adding it.
+recovered=$(git diff --cached --name-only --diff-filter=ACMR -- src/kappa/labels/_recovered/)
+[ -z "$staged" ] && [ -z "$recovered" ] && exit 0
+
+# Patterns are anchored on provider-specific prefixes plus a length floor, which
+# keeps false positives off git SHAs and DICOM UIDs.
+patterns='hf_[A-Za-z0-9]{34,}|sk-[A-Za-z0-9_-]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{50,}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+
+fail=0
+
+# src/kappa/labels/_recovered/ holds the original label-mapping scripts, which
+# quote competition report text verbatim, so it stays local. Deleting is allowed.
+if [ -n "$recovered" ]; then
+  echo "BLOCKED: src/kappa/labels/_recovered/ contains competition report text and must not be committed." >&2
+  printf '%s\n' "$recovered" | head -3 | sed 's/^/  /' >&2
+  fail=1
+fi
+
+while IFS= read -r file; do
+  [ -n "$file" ] || continue
+  case "$file" in *.ipynb) ;; esac
+  if git show ":$file" 2>/dev/null | grep -nEq "$patterns"; then
+    echo "BLOCKED: $file contains something shaped like a credential." >&2
+    git show ":$file" | grep -nE "$patterns" | head -3 | sed 's/\(.\{16\}\).*/\1.../' >&2
+    fail=1
+  fi
+  # Named credential files should never be staged regardless of content.
+  case "$(basename "$file")" in
+    .env|.env.*|kaggle.json|*.pem|*.key|token)
+      [ "$(basename "$file")" = ".env.example" ] && continue
+      echo "BLOCKED: $file is a credential file and must not be committed." >&2
+      fail=1 ;;
+  esac
+done <<< "$staged"
+
+if [ "$fail" = 1 ]; then
+  echo >&2
+  echo "Nothing was committed. Remove the secret or the unpublished file, or --no-verify if you are certain." >&2
+  exit 1
+fi
+exit 0
