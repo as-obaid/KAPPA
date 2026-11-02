@@ -24,6 +24,14 @@ time, so inference runs offline from DICOM alone.
 > [!IMPORTANT]
 > KAPPA is a research model. It is not a medical device and must not be used for diagnosis.
 
+<p align="center">
+  <img src="docs/figures/overview.png" width="100%"
+       alt="A knee MRI study with sagittal, coronal and axial series goes into KAPPA's pretrained 2D backbone, which returns one probability for each of 12 knee findings.">
+</p>
+
+<sub>One study in, 12 probabilities out. The knee drawings are schematic and the values are
+illustrative.</sub>
+
 ## At a glance
 
 | | |
@@ -42,23 +50,18 @@ time, so inference runs offline from DICOM alone.
 
 <p align="center">
   <img src="docs/figures/architecture.png" width="100%"
-       alt="Pipeline: DICOM studies are mapped to six plane and fat-saturation slots, labeled from report text and split into five folds; a pretrained 2D backbone reads 2.5D slice stacks per slot, gated attention pooling combines them into 12 outputs, and fold models are rank-blended into an offline Kaggle submission.">
+       alt="A knee MRI study becomes 2.5D slice stacks; a shared pretrained ConvNeXt-Small encodes them, attention pooling combines slices and then series, and the model returns 12 probabilities. In training only, labels derived from the radiology report supervise the output.">
 </p>
 
-1. **Map the series.** One DICOM header per series places each of the 24,371 series in one of six
-   slots, by plane and fat saturation. Slices are ordered by physical position, because
-   `InstanceNumber` disagrees with it in about 41% of series.
-2. **Label from reports.** A multilingual LLM extracts findings from each training report, and a
-   fixed mapping turns them into 12 labels plus a mask for findings the report leaves open. The
-   result agrees with the 58 labeled studies at 0.765 macro balanced accuracy.
-3. **Split.** Five folds over 3,722 studies, grouped on report text and stratified on all 12
-   labels and report language. 685 studies are held out.
-4. **Train.** Each slot contributes 16 slices, each stacked with its two neighbours as the three
-   channels of a pretrained timm backbone. Gated attention pooling combines them into one study
-   prediction; missing slots are masked out. The loss is asymmetric and masked per label.
-5. **Blend and submit.** Fold models are combined by per-column rank averaging. An offline Kaggle
-   notebook reads the test DICOMs and writes `submission.csv`.
+1. **Slice.** Each series becomes 16 slices, each stacked with its two neighbours as one
+   three-channel image.
+2. **Encode.** One pretrained ConvNeXt-Small encodes every slice of every series.
+3. **Pool.** Attention pooling combines slices, then series, into 12 probabilities. Missing
+   series are masked out.
+4. **Supervise.** In training only, an LLM turns each report into 12 labels, plus a mask for
+   findings the report leaves open. Test studies have no report, so inference uses images alone.
 
+Five fold models are rank-averaged, and an offline Kaggle notebook writes the submission.
 Details: [model reference](docs/model.md).
 
 ## Data

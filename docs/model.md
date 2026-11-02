@@ -4,10 +4,10 @@ KAPPA scores one knee MRI study at a time. One shared 2D backbone encodes 2.5D s
 each series, and gated attention pools the slices into a series vector and the series into a
 study vector, from which a head emits 12 logits.
 
-<p align="center"><img src="figures/architecture.png" width="100%" alt="Pipeline in three panels: data (DICOM study, cache, labels from reports, five-fold split), model (slots, 2.5D stacks, ConvNeXt-Small, FiLM, pooling over slices and slots, head, 12 logits) and evaluation (out-of-fold score, rank blend, offline notebook, submission)."></p>
+<p align="center"><img src="figures/architecture.png" width="100%" alt="Inference path from a knee MRI study through 2.5D slice stacks, a shared ConvNeXt-Small and attention pooling to 12 probabilities; labels derived from the report supervise training only."></p>
 
-<sub>Figure 1. From DICOM study to submission. Blue boxes mark the settings the sweep kept: three
-fat-suppressed slots and ConvNeXt-Small.</sub>
+<sub>Figure 1. Solid arrows are the inference path, which reads images only. Dashed arrows are
+training only: labels derived from each report supervise the 12 outputs.</sub>
 
 ## At a glance
 
